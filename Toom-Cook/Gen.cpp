@@ -127,8 +127,10 @@ void printInt(int len){
 }
 
 int main(int argc, char* argv[]){
-	int n = random(1,100);
-	int m = random(1,100);
+	int t = 1;
+	cout << t << endl;
+	int n = random(1,10000);
+	int m = random(1,10000);
 	printInt(n);
 	printInt(m);
 	return 0;

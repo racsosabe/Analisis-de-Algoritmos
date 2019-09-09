@@ -1,327 +1,180 @@
 #include<bits/stdc++.h>
 using namespace::std;
 
-class BigInteger{
-	int len;
-	vector<int> v;
-	public:
-	BigInteger(string s){
-		len = s.size();
-		for(int i=s.size()-1; i >= 0; i--){
-			v.emplace_back(s[i] - '0');
+const int k = 3;
+
+void print(vector<int> &a){
+	for(int i=a.size()-1; i>=0; i--) printf("%d",a[i]);
+	putchar('\n');
+}
+
+void fix(vector<int> &a){
+	int carry = 0;
+	int len = a.size();
+	for(int i=0; i<len; i++){
+		a[i] += carry;
+		if(a[i] < 0){
+			int c = i + 1 < len? -(-a[i] + 9) / 10 : 0;
+			carry = c;
+		}
+		else if(a[i] >= 10){
+			carry = a[i] / 10;
+		}
+		else carry = 0;
+		a[i] -= carry * 10;
+	}
+	if(carry < 0) a.emplace_back(carry);
+	while(carry > 0){
+		a.emplace_back(carry % 10);
+		carry /= 10;
+	}
+	for(int i=0; i<a.size(); i++){
+		if(a[i] >= 10){
+			if(i + 1 < a.size()) a[i+1] += a[i] / 10;
+			else a.emplace_back(a[i] / 10);
+			a[i] %= 10;
 		}
 	}
+	len = a.size();
+	while(len > 1 and a[len-1] == 0) len -= 1;
+	a.resize(len);
+}
 
-	BigInteger(int L){
-		len = L;
-		v.resize(len);
-		v.assign(len,0);
+vector<int> get(vector<int> &a, int L, int R){
+	vector<int> ans;
+	for(int i=L; i<R; i++){
+		if(i < a.size()) ans.emplace_back(a[i]);
 	}
+	ans.emplace_back(0);
+	fix(ans);
+	return ans;
+}
 
-	BigInteger(vector<int> a){
-		v = a;
-		len = v.size();
-		fixLeadingZeroes();
+vector<int> add(vector<int> a, vector<int> b, int sign = 1){
+	vector<int> ans(a.begin(),a.end());
+	for(int i=0; i<b.size(); i++){
+		if(i < ans.size()) ans[i] += sign * b[i];
+		else ans.emplace_back(sign * b[i]);
 	}
-
-	~BigInteger(){
-		v.clear();
-		len = 0;
-	}
-
-	BigInteger operator + (BigInteger b){
-		int new_len = max(len,b.len);
-		vector<int> new_v(new_len,0);
-		for(int i=0; i<new_len; i++){
-			if(i < b.len) new_v[i] += b.v[i];
-			if(i < len) new_v[i] += v[i];
-		}
-		for(int i=0; i<new_v.size(); i++){
-			if(new_v[i] >= 10){
-				if(i + 1 < new_v.size()){
-					new_v[i+1] += new_v[i] / 10;
-				}
-				else new_v.emplace_back(new_v[i] / 10);
-				new_v[i] %= 10;
-			}
-		}
-		return BigInteger(new_v);
-	}
-
-	BigInteger operator = (BigInteger b){
-		v = b.v;
-		len = v.size();
-	}
-
-	friend ostream& operator << (ostream& o, BigInteger a){
-		for(int i=a.len-1; i>=0; i--){
-			o << a.v[i];
-		}
-		return o;
-	}
-
-	void makeEqual(int new_len){
-		while(len < new_len){
-			v.emplace_back(0);
-			len += 1;
+	fix(ans);
+	return ans;
+}
+vector<int> multiplyNormal(vector<int> &a, vector<int> &b){
+	vector<int> ans(a.size() + b.size(),0);
+	for(int i=0; i<a.size(); i++){
+		for(int j=0; j<b.size(); j++){
+			ans[i+j] += a[i] * b[j];
 		}
 	}
+	fix(ans);
+	return ans;
+}
 
-	int getValue(){
-		int ans = 0;
-		for(int i = 0; i < len; i++){
-			ans |= v[i]<<i;
-		}
-		return ans;
+vector<int> scalarMultiplication(vector<int> a, int val){
+	vector<int> b;
+	while(val > 0){
+		b.emplace_back(val % 10);
+		val /= 10;
 	}
+	a = multiplyNormal(a,b);
+	fix(a);
+	return a;
+}
 
-	int getLen(){ return len;}
-
-	BigInteger operator - (BigInteger b){
-		int alen = max(len,b.len);
-		vector<int> a(alen,0);
-		for(int i=0; i<alen; i++){
-			if(i < len) a[i] += v[i];
-			if(i < b.len) a[i] -= b.v[i];
-		}
-		for(int i=0; i<a.size(); i++){
-			if(a[i] <= -10){
-				int val = -a[i];
-				int c = (val + 9) / 10;
-				if(i + 1 < a.size()) a[i+1] -= c;
-				else a.emplace_back(-c);
-				a[i] -= (-c) * 10;
-			}
-			else if(a[i] >= 10){
-				if(i + 1 < a.size()) a[i+1] += a[i] / 10;
-				else a.emplace_back(a[i] / 10);
-				a[i] %= 10;
-			}
-		}
-		BigInteger ans(a);
-		ans.fixLeadingZeroes();
-		return ans;
-
+vector<int> scalarDivision(vector<int> a, int val){
+	int rem = 0;
+	fix(a);
+	for(int i=a.size()-1; i>=0; i--){
+		rem = ((10 * rem + a[i]) % val + val) % val;
 	}
-
-	BigInteger operator * (BigInteger b){
-		if(b.isZero() or isZero()) return BigInteger("0");
-		int alen = len + b.len;
-		vector<int> a(alen,0);
-		for(int i=0; i<len; i++){
-			for(int j=0; j<b.len; j++){
-				a[i+j] += v[i] * b.v[j];
-			}
-		}
-		for(int i=0; i<a.size(); i++){
-			if(a[i] >= 10){
-				if(i + 1 < a.size()) a[i+1] += a[i] / 10;
-				else a.emplace_back(a[i] / 10);
-				a[i] %= 10;
-			}
-		}
-		BigInteger ans(a);
-		ans.fixLeadingZeroes();
-		return ans;
-	}
-
-	BigInteger operator * (int val){
-		assert(val > 0);
-		vector<int> a;
-		while(val > 0){
-			a.emplace_back(val % 10);
-			val /= 10;
-		}
-		BigInteger b(a);
-		BigInteger c(v);
-		BigInteger ans = b * c;
-		ans.fix();
-		return ans;
-	}
-
-	void set(int id, int val){
-		assert(0 <= id and id < len);
-		v[id] = val;
-	}
-
-	void add(int id, int val){
-		assert(0 <= id and id < len);
-		v[id] += val;
-	}
-
-	void divide(int val){ // I'm sure val < 10 :'v
-		int rem = 0;
-		for(int i=len-1; i >= 0; i--){
-			rem = (10 * rem + v[i]) % val;
-		}
+	if(rem){
+		puts("ERROR, not exact division");
 		assert(rem == 0);
-		vector<int> a(len,0);
-		int pos = 0;
-		int carry = 0;
-		for(int i=len-1; i>=0; i--){
-			int x = v[i] + carry;
-			a[pos++] = x / val;
-			carry = (x % val) * 10;
-		}
-		reverse(a.begin(),a.end());
-		while(a.size() > 1 and a.back() == 0) a.pop_back();
-		v = a;
-		len = a.size();
-		fix();
 	}
-
-	int get(int id){
-		assert(0 <= id and id < len);
-		return v[id];
+	int carry = 0;
+	vector<int> ans;
+	for(int i=a.size()-1; i>=0; i--){
+		carry = 10 * carry + a[i];
+		int c;
+		c = carry / val;
+		carry -= c * val;
+		ans.emplace_back(c);
 	}
+	reverse(ans.begin(),ans.end());
+	fix(ans);
+	return ans;
+}
 
-	void fix(){
-		int carry = 0;
-		for(int i=0; i<len; i++){
-			v[i] += carry;
-			if(v[i] < 0){
-				int c = i + 1 < len? -(-v[i] + 9) / 10 : 0;
-				carry = c;
-			}
-			else if(v[i] >= 10){
-				carry = v[i] / 10;
-			}
-			v[i] -= carry * 10;
-		}
-		if(carry < 0) v.emplace_back(carry);
-		while(carry > 0){
-			v.emplace_back(carry % 10);
-			carry /= 10;
-		}
 
-		for(int i=0; i<v.size(); i++){
-			if(v[i] >= 10){
-				if(i + 1 < v.size()) v[i+1] += v[i] / 10;
-				else v.emplace_back(v[i] / 10);
-				v[i] %= 10;
-			}
-		}
-		len = v.size();
-		fixLeadingZeroes();
+void getEvaluationPoints(vector<int> &m0, vector<int> &m1, vector<int> &m2, vector<int> &p0, vector<int> &p1, vector<int> &pm1, vector<int> &pm2, vector<int> &pi){
+	vector<int> P0 = add(m0,m2,1);
+	p0 = m0;
+	p1 = add(P0,m1,1);
+	pm1 = add(P0,m1,-1);
+	pm2 = add(scalarMultiplication(add(pm1,m2),2),m0,-1);
+	pi = m2;
+}
+
+void shift(vector<int> &a, int L){
+	vector<int> ans;
+	for(int i=0; i<L; i++) ans.emplace_back(0);
+	for(int i=0; i<a.size(); i++) ans.emplace_back(a[i]);
+	a = ans;
+}
+
+vector<int> multiplyTC3(vector<int> &a, vector<int> &b){
+	int lenA = a.size();
+	int lenB = b.size();
+	if(max(lenA,lenB) <= 100){
+		return multiplyNormal(a,b);
 	}
+	int len = max(lenA / k, lenB / k) + 1;
+	vector<int> m0 = get(a,0,len);
+	vector<int> m1 = get(a,len,len+len);
+	vector<int> m2 = get(a,len+len,len+len+len);
+	vector<int> p0, p1, pm1, pm2, pi;
+	getEvaluationPoints(m0,m1,m2,p0,p1,pm1,pm2,pi);
+	vector<int> n0 = get(b,0,len);
+	vector<int> n1 = get(b,len,len+len);
+	vector<int> n2 = get(b,len+len,len+len+len);
+	vector<int> q0, q1, qm1, qm2, qi;
+	getEvaluationPoints(n0,n1,n2,q0,q1,qm1,qm2,qi);
+	vector<int> r0 = multiplyTC3(p0,q0);
+	vector<int> r1 = multiplyTC3(p1,q1);
+	vector<int> rm1 = multiplyTC3(pm1,qm1);
+	vector<int> rm2 = multiplyTC3(pm2,qm2);
+	vector<int> ri = multiplyTC3(pi,qi);
+	vector<int> R0 = r0;
+	vector<int> R4 = ri;
+	vector<int> R3 = scalarDivision(add(rm2,r1,-1),3);
+	vector<int> R1 = scalarDivision(add(r1,rm1,-1),2);
+	vector<int> R2 = add(rm1,r0,-1);
+	R3 = add(scalarDivision(add(R2,R3,-1),2),scalarMultiplication(ri,2));
+	R2 = add(R2,add(R1,R4,-1));
+	R1 = add(R1,R3,-1);
+	shift(R1,len);
+	shift(R2,len+len);
+	shift(R3,len+len+len);
+	shift(R4,len+len+len+len);
+	vector<int> ans = add(R0,add(R1,add(R2,add(R3,R4))));
+	fix(ans);
+	return ans;
+}
 
-	void fixLeadingZeroes(){
-		while(len > 1 and v.back() == 0){
-			v.pop_back();
-			len -= 1;
-		}
+void getVector(vector<int> &v, string &s){
+	for(int i=s.size() - 1; i >= 0; i--){
+		v.emplace_back(s[i] - '0');
 	}
+}
 
-	bool isZero(){
-		for(int i=0; i<len; i++){
-			if(v[i] != 0) return false;
-		}
-		return true;
+int checkNegative(string &s){
+	int ans = 0;
+	if(s[0] == '-'){
+		ans += 1;
+		s = s.substr(1);
+		while(s.size() and s[0] == '0') s = s.substr(1);
+		if(s == "0") ans -= 1;
 	}
-
-	void shift(int pos){
-		vector<int> a;
-		for(int i=0; i<pos; i++) a.emplace_back(0);
-		for(int i=0; i<len; i++) a.emplace_back(v[i]);
-		v = a;
-		len = v.size();
-	}
-
-	BigInteger getOrder(int L, int R){
-		vector<int> a(v.begin() + L, v.begin() + R);
-		return BigInteger(a);
-	}
-};
-
-BigInteger multiplyToomCook3(BigInteger &A, BigInteger &B){
-	int len = max(A.getLen(),B.getLen());
-	int L = len / 3 + 1;
-	if(len <= 9){
-		return A * B;
-	}
-	BigInteger A0 = A.getOrder(0,L);
-	BigInteger A1 = A.getOrder(L,L+L);
-	BigInteger A2 = A.getOrder(L+L,len);
-	BigInteger B0 = B.getOrder(0,L);
-	BigInteger B1 = B.getOrder(L,L+L);
-	BigInteger B2 = B.getOrder(L+L, len);
-	cout << "A(x) = " << A2 << "x^2 + " << A1 << "x + " << A0 << endl;
-	cout << "B(x) = " << B2 << "x^2 + " << B1 << "x + " << B0 << endl;
-
-	BigInteger ap = A0 + A2;
-
-	BigInteger a0 = A0;
-	BigInteger a1 = ap + A1;
-	BigInteger am1 = ap - A1;
-	BigInteger am2 = (am1 + A2) * 2 - A0;
-	BigInteger ai = A2;
-
-	BigInteger bp = B0 + B2;
-
-	BigInteger b0 = B0;
-	BigInteger b1 = bp + B1;
-	BigInteger bm1 = bp - B1;
-	BigInteger bm2 = (bm1 + B2) * 2 - B0;
-	BigInteger bi = B2;
-
-
-	am2.fix(); am1.fix(); a0.fix(); a1.fix(); ai.fix();
-	bm2.fix(); bm1.fix(); b0.fix(); b1.fix(); bi.fix();
-
-	BigInteger cm2 = multiplyToomCook3(am2,bm2);
-	BigInteger cm1 = multiplyToomCook3(am1,bm1);
-	BigInteger c0 = multiplyToomCook3(a0,b0);
-	BigInteger c1 = multiplyToomCook3(a1,b1);
-	BigInteger ci = multiplyToomCook3(ai,bi);
-	
-//	cout << "a0 = " << ap << endl;
-//	cout << "a(-2) = " << am2 << endl;
-//	cout << "a(-1) = " << am1 << endl;
-//	cout << "a(0) = " << a0 << endl;
-//	cout << "a(1) = " << a1 << endl;
-//	cout << "a(oo) = " << ai << endl;
-//
-//	cout << "b0 = " << bp << endl;
-//	cout << "b(-2) = " << bm2 << endl;
-//	cout << "b(-1) = " << bm1 << endl;
-//	cout << "b(0) = " << b0 << endl;
-//	cout << "b(1) = " << b1 << endl;
-//	cout << "b(oo) = " << bi << endl;
-//
-//	cout << "c(0) = " << c0 << endl;
-//	cout << "c(1) = " << c1 << endl;
-//	cout << "c(-1) = " << cm1 << endl;
-//	cout << "c(-2) = " << cm2 << endl;
-//	cout << "c(oo) = " << ci << endl;
-	
-	cm2.fix(); cm1.fix(); c0.fix(); c1.fix(); ci.fix();
-
-	BigInteger C4 = ci;
-	BigInteger C0 = c0;
-	BigInteger C3 = cm2 - c1;
-	C3.fix(); C3.divide(3);
-	BigInteger C1 = c1 - cm1;
-	C1.fix(); C1.divide(2);
-	BigInteger C2 = cm1 - c0;
-
-	C3 = (C2 - C3) + C4 * 4;
-	C3.fix(); C3.divide(2);
-
-	C2 = C2 + C1 - C4;
-	C1 = C1 - C3;
-
-	C3.fix();
-	C2.fix();
-	C1.fix();
-
-	C4.shift(L+L+L+L);
-	C3.shift(L+L+L);
-	C2.shift(L+L);
-	C1.shift(L);
-
-	BigInteger ans = C4 + C3 + C2 + C1 + C0;
-	ans.fix();
-	cout << "Product " << A << " x " << B << " = " << ans << endl;
 	return ans;
 }
 
@@ -331,15 +184,18 @@ int main(){
 	cin >> t;
 	while(t--){
 		cin >> a >> b;
-		BigInteger A(a);
-		BigInteger B(b);
-		auto start = chrono::steady_clock::now();
-		int L = max(A.getLen(),B.getLen());
-		BigInteger C = multiplyToomCook3(A,B);
-		C.fixLeadingZeroes();
-		auto end = chrono::steady_clock::now();
-		cerr << "Tiempo de ejecucion: " << chrono::duration_cast<chrono::microseconds>(end - start).count() << " " << char(230) << "s" << endl;
-		cout << C << endl;
+		int neg = 0;
+		vector<int> A;
+		vector<int> B;
+		neg += checkNegative(a);
+		neg += checkNegative(b);
+		getVector(A,a);
+		getVector(B,b);
+		vector<int> C = multiplyTC3(A,B);
+		if(neg&1){
+			putchar('-');
+		}
+		print(C);
 	}
 	return 0;
 }

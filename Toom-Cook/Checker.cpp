@@ -128,12 +128,15 @@ bool checkAns(InStream &in){
 
 int main(int argc, char* argv[]){
 	registerTestlibCmd(argc,argv);
-	string jans = ans.readToken();
-	string pans = ouf.readToken();
-	if(jans.size() != pans.size()) quitf(_wa, "Wrong answer. The answer has different length");
-	for(int i=0; i<jans.size(); i++){
-		if(jans[i] != pans[i]){
-			quitf(_wa, "Wrong answer. Expected %d in position %d, found %d",jans[i]-'0',i+1,pans[i]-'0');
+	int t = inf.readInt();
+	while(t--){
+		string jans = ans.readToken();
+		string pans = ouf.readToken();
+		if(jans.size() != pans.size()) quitf(_wa, "Wrong answer. The answer has different length");
+		for(int i=0; i<jans.size(); i++){
+			if(jans[i] != pans[i]){
+				quitf(_wa, "Wrong answer. Expected %d in position %d, found %d",jans[i]-'0',i+1,pans[i]-'0');
+			}
 		}
 	}
 	quitf(_ok,"Accepted");
