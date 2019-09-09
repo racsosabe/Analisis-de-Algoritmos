@@ -207,7 +207,10 @@ int main(){
 		neg += checkNegative(b);
 		getVector(A,a);
 		getVector(B,b);
+		auto start = chrono::steady_clock::now();
 		vector<int> C = multiplyTC3(A,B);
+		auto end = chrono::steady_clock::now();
+		cerr << "Tiempo de ejecucion: " << chrono::duration_cast<chrono::milliseconds>(end - start).count() << " ms" << endl;
 		if(neg&1){
 			putchar('-');
 		}
