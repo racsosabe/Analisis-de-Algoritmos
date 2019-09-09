@@ -4,11 +4,13 @@ using namespace::std;
 const int k = 3;
 
 void print(vector<int> &a){
+	// Imprime el número a
 	for(int i=a.size()-1; i>=0; i--) printf("%d",a[i]);
 	putchar('\n');
 }
 
 void fix(vector<int> &a){
+	// Ajusta los valores de la representación en base 10 de a
 	int carry = 0;
 	int len = a.size();
 	for(int i=0; i<len; i++){
@@ -41,6 +43,8 @@ void fix(vector<int> &a){
 }
 
 vector<int> get(vector<int> &a, int L, int R){
+	// Obtiene la sección a[L,R) y le agrega un 0
+	// Por si es vacia la intersección
 	vector<int> ans;
 	for(int i=L; i<R; i++){
 		if(i < a.size()) ans.emplace_back(a[i]);
@@ -51,6 +55,7 @@ vector<int> get(vector<int> &a, int L, int R){
 }
 
 vector<int> add(vector<int> a, vector<int> b, int sign = 1){
+	// Devuelve a + sign * b
 	vector<int> ans(a.begin(),a.end());
 	for(int i=0; i<b.size(); i++){
 		if(i < ans.size()) ans[i] += sign * b[i];
@@ -60,6 +65,7 @@ vector<int> add(vector<int> a, vector<int> b, int sign = 1){
 	return ans;
 }
 vector<int> multiplyNormal(vector<int> &a, vector<int> &b){
+	// Multiplicacion escolar
 	vector<int> ans(a.size() + b.size(),0);
 	for(int i=0; i<a.size(); i++){
 		for(int j=0; j<b.size(); j++){
@@ -71,6 +77,7 @@ vector<int> multiplyNormal(vector<int> &a, vector<int> &b){
 }
 
 vector<int> scalarMultiplication(vector<int> a, int val){
+	// Multiplicacion por un escalar
 	vector<int> b;
 	while(val > 0){
 		b.emplace_back(val % 10);
@@ -82,6 +89,7 @@ vector<int> scalarMultiplication(vector<int> a, int val){
 }
 
 vector<int> scalarDivision(vector<int> a, int val){
+	// Division por un escalar
 	int rem = 0;
 	fix(a);
 	for(int i=a.size()-1; i>=0; i--){
@@ -123,27 +131,33 @@ void shift(vector<int> &a, int L){
 }
 
 vector<int> multiplyTC3(vector<int> &a, vector<int> &b){
+	// Multiplicacion mediante Toom-Cook 3
 	int lenA = a.size();
 	int lenB = b.size();
 	if(max(lenA,lenB) <= 100){
+		// Si no son muy grandes, multiplicación escolar
 		return multiplyNormal(a,b);
 	}
-	int len = max(lenA / k, lenB / k) + 1;
+	int len = max(lenA / k, lenB / k) + 1; // Asignacion del len
+	// Particion de los numeros y obtención de los puntos evaluados - u
 	vector<int> m0 = get(a,0,len);
 	vector<int> m1 = get(a,len,len+len);
 	vector<int> m2 = get(a,len+len,len+len+len);
 	vector<int> p0, p1, pm1, pm2, pi;
 	getEvaluationPoints(m0,m1,m2,p0,p1,pm1,pm2,pi);
+	// Particion de los numeros y obtención de los puntos evaluados - v
 	vector<int> n0 = get(b,0,len);
 	vector<int> n1 = get(b,len,len+len);
 	vector<int> n2 = get(b,len+len,len+len+len);
 	vector<int> q0, q1, qm1, qm2, qi;
 	getEvaluationPoints(n0,n1,n2,q0,q1,qm1,qm2,qi);
+	// Obtención de los productos de cada punto
 	vector<int> r0 = multiplyTC3(p0,q0);
 	vector<int> r1 = multiplyTC3(p1,q1);
 	vector<int> rm1 = multiplyTC3(pm1,qm1);
 	vector<int> rm2 = multiplyTC3(pm2,qm2);
 	vector<int> ri = multiplyTC3(pi,qi);
+	// Obtención de los coeficientes
 	vector<int> R0 = r0;
 	vector<int> R4 = ri;
 	vector<int> R3 = scalarDivision(add(rm2,r1,-1),3);
@@ -152,6 +166,7 @@ vector<int> multiplyTC3(vector<int> &a, vector<int> &b){
 	R3 = add(scalarDivision(add(R2,R3,-1),2),scalarMultiplication(ri,2));
 	R2 = add(R2,add(R1,R4,-1));
 	R1 = add(R1,R3,-1);
+	// Shift = evaluar en x = B^len
 	shift(R1,len);
 	shift(R2,len+len);
 	shift(R3,len+len+len);
@@ -161,7 +176,8 @@ vector<int> multiplyTC3(vector<int> &a, vector<int> &b){
 	return ans;
 }
 
-void getVector(vector<int> &v, string &s){
+void getVector(vector<int> &v, string &s){ 
+	// Obtiene el vector en función al string leido
 	for(int i=s.size() - 1; i >= 0; i--){
 		v.emplace_back(s[i] - '0');
 	}
